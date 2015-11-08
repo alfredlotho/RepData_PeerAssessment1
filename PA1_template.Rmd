@@ -8,18 +8,118 @@ output:
 
 ## Loading and preprocessing the data
 
+The code below reads the activity monitoring data:
+
+```{r}
+data <- read.csv("activity.csv")
+```
 
 
 ## What is mean total number of steps taken per day?
 
+The code below retrieves the total number of steps taken per day
 
+```{r}
+totalStepsPerDay <- tapply(data$steps, data$date, sum, na.rm=TRUE)
+```
+
+The results are as follows:
+```{r echo=FALSE}
+as.data.frame(totalStepsPerDay)
+```
+
+Below is a histogram for the total number of steps per day.
+
+```{r}
+hist(totalStepsPerDay, breaks=60)
+```
+
+Below is the code and results for computing the mean of the total number of steps per day.
+
+```{r}
+mean(totalStepsPerDay)
+```
+
+Below is the code and results for computing the median of the total number of steps per day.
+
+```{r}
+median(totalStepsPerDay)
+```
 
 ## What is the average daily activity pattern?
 
+The code and results below show the average number of steps taken per 5 minute interval across all days. 
 
+```{r}
+aveDailyActPattern <- tapply(data$steps, data$interval, mean, na.rm=TRUE)
+aveDailyActPatternTable <- data.frame(as.numeric(aveDailyActPattern), as.numeric(names(aveDailyActPattern)))
+plot(aveDailyActPatternTable[,2], aveDailyActPatternTable[,1], type="l", xlab="interval", ylab="average steps per interval")
+```
 
-## Imputing missing values
+The code and results below shows the 5 minute interval containing the maximum average number of steps.
 
+```{r}
+aveDailyActPatternTable[,2][aveDailyActPatternTable[,1] == max(aveDailyActPatternTable[,1], na.rm=TRUE)]
+```
 
+## Inputing missing values
+
+The code and results below correspond to the number of NAs in the data.
+
+```r
+nrow(data[is.na(data$steps),])
+```
+
+To prevent bias in calculations, the code below replaces the missing values with the average steps for the specific 5 minute interval. The new data frame "dataFilled" without missing values is produced.
+
+```{r}
+dataFilled <- data
+dataFilled$steps[is.na(dataFilled$steps)] <- aveDailyActPatternTable[,1][match(aveDailyActPatternTable[,2],dataFilled$interval)]
+```
+
+The code below computes the total steps per day based on the new data frame without missing values
+
+```{r}
+totalStepsPerDayFilled <- tapply(data$steps, data$date, sum, na.rm=TRUE)
+as.data.frame(totalStepsPerDayFilled)
+```
+
+Below is a histogram for the total number of steps per day for the new data set without missing values.
+
+```{r}
+hist(totalStepsPerDayFilled, breaks=60)
+```
+
+Below is the code and results for computing the mean of the total number of steps per day for the new data set without missing values.
+
+```{r}
+mean(totalStepsPerDayFilled)
+```
+
+Below is the code and results for computing the median of the total number of steps per day for the new data set without missing values.
+
+```{r}
+median(totalStepsPerDayFilled)
+```
+
+Since the mean was used to fill up the missing values, we are not expecting any changes with the graph and summary statistics from the original data.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+The code below adds a factor indicating whether the date is a weekend or a weekday.
+
+```{r results='hide'}
+dataFilled[,4] <- ifelse(weekdays(as.Date(dataFilled[,2]))=="Saturday" | weekdays(as.Date(dataFilled[,2]))=="Sunday", "weekend", "weekday")
+dataFilled[,4] <- as.factor(dataFilled[,4])
+```
+
+Below is the code and the generated time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis)
+
+```{r}
+aveDailyActPatternWithDays <- tapply(dataFilled$steps, dataFilled[,c(3:4)], mean, na.rm=TRUE)
+z <- cbind(as.numeric(rownames(aveDailyActPatternWithDays)), aveDailyActPatternWithDays[,1], aveDailyActPatternWithDays[,2])
+par(mfrow=c(2,1))
+par(mar=c(2,2,1,2))
+plot(x = z[,1], y = z[,3], type="l", xlab = "", ylab = "", main="Weekend")
+plot(x = z[,1], y = z[,2], type="l", xlab = "", ylab = "", main="Weekday")
+```
